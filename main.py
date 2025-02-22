@@ -3,7 +3,6 @@ import pandas as pd
 import nltk
 from nltk.translate.bleu_score import sentence_bleu
 from rouge import Rouge
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud
 import seaborn as sns
@@ -13,16 +12,6 @@ nltk.download('punkt')
 
 # Initialize ROUGE
 rouge = Rouge()
-
-# Initialize GPT-2 for perplexity calculation
-model = GPT2LMHeadModel.from_pretrained('gpt2')
-tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-
-def calculate_perplexity(text):
-    inputs = tokenizer(text, return_tensors='pt')
-    with torch.no_grad():
-        outputs = model(**inputs, labels=inputs['input_ids'])
-    return torch.exp(outputs.loss).item()
 
 def calculate_metrics(row, reference_col, compare_col):
     reference = row[reference_col]
@@ -37,10 +26,7 @@ def calculate_metrics(row, reference_col, compare_col):
     rouge_2 = rouge_scores['rouge-2']['f']
     rouge_l = rouge_scores['rouge-l']['f']
     
-    # Perplexity
-    perplexity = calculate_perplexity(compare)
-    
-    return bleu, rouge_1, rouge_2, rouge_l, perplexity
+    return bleu, rouge_1, rouge_2, rouge_l
 
 def main():
     st.title("NLP Metrics and Visualization App")
@@ -49,7 +35,7 @@ def main():
     ## How to use this app:
     1. Upload a CSV file containing columns of text (author's abstract and translations).
     2. Rename columns if necessary and select the reference column.
-    3. Calculate metrics (BLEU, ROUGE, perplexity) for each translation.
+    3. Calculate metrics (BLEU, ROUGE) for each translation.
     4. View visualizations and download the updated CSV with metrics.
     
     This app helps you compare different translations and analyze their quality using various NLP metrics.
@@ -78,7 +64,7 @@ def main():
         if st.button("Calculate Metrics"):
             for col in df.columns:
                 if col != reference_col:
-                    df[f'{col}_BLEU'], df[f'{col}_ROUGE-1'], df[f'{col}_ROUGE-2'], df[f'{col}_ROUGE-L'], df[f'{col}_Perplexity'] = zip(*df.apply(lambda row: calculate_metrics(row, reference_col, col), axis=1))
+                    df[f'{col}_BLEU'], df[f'{col}_ROUGE-1'], df[f'{col}_ROUGE-2'], df[f'{col}_ROUGE-L'] = zip(*df.apply(lambda row: calculate_metrics(row, reference_col, col), axis=1))
             
             st.write("DataFrame with Metrics:")
             st.write(df)
@@ -119,7 +105,7 @@ def main():
         
         # Metrics comparison
         st.write("Metrics Comparison")
-        metrics_df = df[[col for col in df.columns if any(metric in col for metric in ['BLEU', 'ROUGE', 'Perplexity'])]]
+        metrics_df = df[[col for col in df.columns if any(metric in col for metric in ['BLEU', 'ROUGE'])]]
         
         fig, ax = plt.subplots(figsize=(12, 6))
         sns.boxplot(data=metrics_df)
@@ -129,4 +115,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
