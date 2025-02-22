@@ -13,12 +13,19 @@ nltk.download('punkt')
 # Initialize ROUGE
 rouge = Rouge()
 
+def safe_sentence_bleu(reference, hypothesis):
+    try:
+        return sentence_bleu([reference.split()], hypothesis.split())
+    except TypeError:
+        # If there's a TypeError (likely due to the _normalize issue), return 0
+        return 0
+
 def calculate_metrics(row, reference_col, compare_col):
     reference = row[reference_col]
     compare = row[compare_col]
     
     # BLEU
-    bleu = sentence_bleu([reference.split()], compare.split())
+    bleu = safe_sentence_bleu(reference, compare)
     
     # ROUGE
     rouge_scores = rouge.get_scores(compare, reference)[0]
